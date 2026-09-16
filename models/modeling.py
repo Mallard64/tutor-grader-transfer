@@ -40,7 +40,12 @@ class MultiHeadGrader(nn.Module):
         self.n_classes = n_classes
 
         self.config = AutoConfig.from_pretrained(model_name)
-        self.encoder = AutoModel.from_pretrained(model_name)
+        # Force fp32. The deberta-v3-base checkpoint is stored in fp16, and
+        # transformers 5.x honors the checkpoint dtype instead of upcasting, so
+        # the default gives an fp16 encoder feeding fp32 heads: a "mat1 and mat2
+        # must have the same dtype" crash on CPU, and a Metal assertion on MPS.
+        # Fine-tuning wants fp32 master weights anyway.
+        self.encoder = AutoModel.from_pretrained(model_name, dtype=torch.float32)
         hidden = self.config.hidden_size
         self.dropout = nn.Dropout(dropout)
         self.heads = nn.ModuleList([nn.Linear(hidden, n_classes) for _ in range(n_dimensions)])

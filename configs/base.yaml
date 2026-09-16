@@ -10,12 +10,15 @@ seed: 0
 
 max_length: 512
 learning_rate: 2.0e-5
-batch_size: 16
-eval_batch_size: 32
+# Effective batch is batch_size * gradient_accumulation_steps = 16.
+# Split this way because batch 16 at 512 tokens peaks high enough to swap on a
+# 16GB unified-memory machine, which slows training by ~30x without erroring.
+batch_size: 8
+eval_batch_size: 16
 num_epochs: 4.0
 warmup_ratio: 0.1
 weight_decay: 0.01
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 2
 
 init_from: ""
 output_dir: models/runs

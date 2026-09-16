@@ -84,7 +84,15 @@ def run_c(seed: int, config: RunConfig | None = None) -> list[dict]:
     math_test = build_splits("math")["test"]
     results.append(_evaluate(model, tokenizer, math_test, "c", "math_trained", 0, seed))
 
-    prog_test = build_splits("programming")["test"]
+    # The in-domain half above stands on its own as a baseline, so a missing
+    # programming set is a skip rather than a failure: the math reference
+    # number can be produced before any programming labeling has happened.
+    try:
+        prog_test = build_splits("programming")["test"]
+    except FileNotFoundError as exc:
+        print(f"  skipping programming eval: {exc}")
+        return results
+
     results.append(_evaluate(model, tokenizer, prog_test, "c", "math_trained", 0, seed))
     return results
 

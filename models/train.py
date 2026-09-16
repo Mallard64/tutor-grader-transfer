@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import json
 import math
+import os
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -36,6 +37,27 @@ def compute_metrics(eval_pred) -> dict[str, float]:
             scores.append(score)
     out["mean_macro_f1"] = float(np.mean(scores)) if scores else 0.0
     return out
+
+
+def resolve_device(preferred: str = "auto") -> str:
+    """Pick a compute device; TGT_DEVICE overrides the choice.
+
+    MPS is included: it works for this model provided the encoder is fp32 (see
+    MultiHeadGrader.__init__). A mixed-dtype model instead dies on MPS with a
+    Metal assertion -- "Destination NDArray and Accumulator NDArray cannot have
+    different datatype" -- which aborts the process rather than raising, so if
+    that ever reappears, suspect dtype before suspecting the backend.
+    """
+    override = os.environ.get("TGT_DEVICE")
+    if override:
+        return override
+    if preferred != "auto":
+        return preferred
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
 
 
 def _warmup_kwargs(config: RunConfig, n_train: int) -> dict[str, float | int]:
@@ -92,6 +114,9 @@ def train_grader(
         # label column name; without this, compute_metrics receives no labels.
         label_names=["labels"],
         remove_unused_columns=False,
+        # Trainer picks up CUDA/MPS on its own; this only forces CPU when
+        # resolve_device() says so (e.g. TGT_DEVICE=cpu).
+        use_cpu=resolve_device() == "cpu",
         **_warmup_kwargs(config, n_train=len(train_ds)),
     )
 
@@ -125,14 +150,7 @@ def predict(
     """Return (probs [n, dims, classes], preds [n, dims])."""
     if tokenizer is None:
         tokenizer = AutoTokenizer.from_pretrained(model.model_name)
-    if device is None:
-        device = (
-            "cuda"
-            if torch.cuda.is_available()
-            else "mps"
-            if torch.backends.mps.is_available()
-            else "cpu"
-        )
+    device = resolve_device() if device is None else device
     model.eval().to(device)
 
     ds = GraderDataset(records, tokenizer, max_length=max_length, with_labels=False)

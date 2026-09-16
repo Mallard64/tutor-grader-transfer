@@ -2,6 +2,7 @@
 """Run the experiments.
 
     uv run python scripts/run_experiments.py a            # majority baseline
+    uv run python scripts/run_experiments.py a2           # TF-IDF + logreg baseline
     uv run python scripts/run_experiments.py b            # LLM judge (costs money)
     uv run python scripts/run_experiments.py c            # math -> programming
     uv run python scripts/run_experiments.py d e          # both learning curves
@@ -33,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    p.add_argument("experiments", nargs="+", choices=["a", "b", "c", "d", "e", "all"])
+    p.add_argument("experiments", nargs="+", choices=["a", "a2", "b", "c", "d", "e", "all"])
     p.add_argument("--k", type=int, nargs="+", default=list(K_VALUES))
     p.add_argument("--seeds", type=int, nargs="+", default=list(SEEDS))
     p.add_argument("--domains", nargs="+", default=["math", "programming"])
@@ -71,7 +72,7 @@ def main() -> int:
     wanted = set(args.experiments)
     if "all" in wanted:
         # (b) is excluded from 'all' on purpose: it spends API credit.
-        wanted = {"a", "c", "d", "e"}
+        wanted = {"a", "a2", "c", "d", "e"}
 
     base_cfg = load_config(args.config)
     failures: list[str] = []
@@ -92,6 +93,13 @@ def main() -> int:
         for domain in args.domains:
             if args.force or not already_done("a", "majority", domain, 0, 0):
                 guard(f"a/{domain}", lambda d=domain: run_a(d))
+
+    if "a2" in wanted:
+        from experiments.linear_baseline import run as run_a2
+
+        for domain in args.domains:
+            if args.force or not already_done("a2", "tfidf_logreg", domain, 0, 0):
+                guard(f"a2/{domain}", lambda d=domain: run_a2(d))
 
     if "b" in wanted:
         from experiments.b_llm_judge import run as run_b
