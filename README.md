@@ -43,18 +43,19 @@ more guidance, so a raw correlation proves nothing.
 
 ## Results
 
-| system | mean macro-F1 | MI | ML | PG | AC | ECE | shortcut gap |
-|---|---|---|---|---|---|---|---|
-| (a) majority class | 0.253 | 0.295 | 0.260 | 0.235 | 0.223 | - | - |
-| (a2) TF-IDF + logreg | **0.517** | 0.544 | 0.509 | 0.502 | 0.515 | 0.076 | −0.12 |
-| (c) DeBERTa-v3-base | 0.506 | 0.595 | 0.468 | 0.443 | 0.516 | 0.055 | **+0.14** |
+| system | seeds | mean macro-F1 | MI | ML | PG | AC | ECE | shortcut gap |
+|---|---|---|---|---|---|---|---|---|
+| (a) majority class | 1 | 0.253 | 0.295 | 0.260 | 0.235 | 0.223 | - | - |
+| (a2) TF-IDF + logreg | 1 | 0.517 | 0.544 | 0.509 | 0.502 | 0.515 | 0.076 | −0.12 |
+| (c) DeBERTa-v3-base | 5 | 0.521 ± 0.015 | 0.603 | 0.480 | 0.481 | 0.519 | 0.046 | **+0.15** |
 
 Math test set: 473 responses / 57 held-out dialogues; DeBERTa trained on a Colab T4.
-DeBERTa does not beat a bag of words on the mean (CIs overlap): it wins on mistake
-identification, loses on guidance, is better calibrated, but leans on response length
-*more* than the human labels do (+0.14) where the linear model leans *less* (−0.12). Its
-validation curve sat at the majority floor for two epochs before jumping to 0.487, on one
-seed — treat the a2-vs-c gap as untested. (d)/(e) need programming labels; (b) costs credit.
+Across 5 seeds DeBERTa spans 0.504–0.536 and ties the bag-of-words baseline (+0.004,
+0.25 sd) rather than beating it. The two are good at different things: DeBERTa is far
+better at mistake identification (0.603 vs 0.544), worse at guidance (0.481 vs 0.502),
+and better calibrated (0.046 vs 0.076). But it tracks response length **more** than the
+human labels do (+0.15) where the linear model tracks it less (−0.12): the accuracy is a
+tie, the shortcut reliance is not. (d)/(e) need labeled programming data; (b) costs credit.
 
 ## Limitations
 
@@ -64,8 +65,8 @@ seed — treat the a2-vs-c gap as untested. (d)/(e) need programming labels; (b)
   ceiling on any grader is unknown.
 - Programming responses are model-generated; real tutors are not that distribution, and
   "reveals the answer" is a keyword heuristic that over-fires: a probe, not a label.
-- Split is 70/15/15 by dialogue group; sizes vary, so counts land near 67/13/19. Every
-  row above is one seed; the 5-seed protocol covers the k-curves, not the baselines.
+- Split is 70/15/15 by dialogue group; sizes vary, so counts land near 67/13/19. (a) and
+  (a2) are single-seed and deterministic; only (c) is swept.
 - DeBERTa needs real memory: batch 16 x 512 swapped on a 16GB laptop, ~30x slower.
 
 ## Run it
