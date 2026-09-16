@@ -1,0 +1,21 @@
+# Experiments (d) and (e) at small k. Few-shot runs need more epochs and a
+# smaller batch than the full math run: with k=8 the default settings give
+# fewer than one optimizer step per epoch.
+name: few_shot
+model_name: microsoft/deberta-v3-base
+train_domain: programming
+eval_domain: programming
+k_programming: 32
+seed: 0
+
+max_length: 512
+learning_rate: 2.0e-5
+batch_size: 8
+eval_batch_size: 32
+num_epochs: 10.0
+warmup_ratio: 0.1
+weight_decay: 0.01
+gradient_accumulation_steps: 1
+
+init_from: ""
+output_dir: models/runs

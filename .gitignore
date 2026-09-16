@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# Raw + derived datasets (re-downloadable / regenerable)
+data/raw/
+data/processed/
+data/programming/candidates_*.jsonl
+data/programming/labeled_*.jsonl
+
+# Model checkpoints and run outputs
+models/runs/
+results/raw/
