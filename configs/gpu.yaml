@@ -1,0 +1,26 @@
+# GPU variant of base.yaml. Identical optimization -- effective batch is still
+# batch_size * gradient_accumulation_steps = 16 -- but taken in one step instead
+# of two accumulated half-steps, which is ~30% faster on a T4 and pointless to
+# split when there is real VRAM. base.yaml keeps the split because batch 16 at
+# 512 tokens swaps on a 16GB laptop.
+#
+# Use this for every seed in a sweep or none: mixing it with base.yaml inside one
+# comparison would confound the seed variance you are trying to measure.
+name: gpu
+model_name: microsoft/deberta-v3-base
+train_domain: math
+eval_domain: programming
+k_programming: 0
+seed: 0
+
+max_length: 512
+learning_rate: 2.0e-5
+batch_size: 16
+eval_batch_size: 32
+num_epochs: 4.0
+warmup_ratio: 0.1
+weight_decay: 0.01
+gradient_accumulation_steps: 1
+
+init_from: ""
+output_dir: models/runs
