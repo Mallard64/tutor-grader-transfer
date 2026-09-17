@@ -1,0 +1,7 @@
+arm,seed,val_mean_macro_f1
+tune_a_base,0,0.4894
+tune_a_base,1,0.5330
+tune_a_base,2,0.5097
+tune_b_weighted,0,0.5185
+tune_b_weighted,1,0.5647
+tune_b_weighted,2,0.5342
