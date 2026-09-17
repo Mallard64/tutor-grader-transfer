@@ -11,8 +11,9 @@ seed: 0
 max_length: 512
 learning_rate: 2.0e-5
 # Effective batch is batch_size * gradient_accumulation_steps = 16.
-# Split this way because batch 16 at 512 tokens peaks high enough to swap on a
-# 16GB unified-memory machine, which slows training by ~30x without erroring.
+# The split is not a laptop workaround -- batch 16 at 512 tokens does not fit
+# anywhere we run. It swaps on a 16GB unified-memory Mac (~30x slower, no error)
+# and it OOMs outright on a 15GB T4. Keep the accumulation.
 batch_size: 8
 eval_batch_size: 16
 num_epochs: 4.0
