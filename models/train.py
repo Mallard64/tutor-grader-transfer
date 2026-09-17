@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from transformers import AutoTokenizer, Trainer, TrainingArguments
 
-from data.schema import DIMENSIONS, UNLABELED, Record, gold_matrix  # noqa: F401
+from data.schema import DIMENSIONS, LABELS, UNLABELED, Record, gold_matrix  # noqa: F401
 from eval.metrics import macro_f1
 from models.dataset import GraderDataset, build_collator
 from models.modeling import MultiHeadGrader
@@ -39,6 +39,27 @@ def compute_metrics(eval_pred) -> dict[str, float]:
     return out
 
 
+def balanced_class_weights(records: Sequence[Record]) -> np.ndarray:
+    """Per-dimension inverse-frequency weights, shaped [n_dimensions, n_classes].
+
+    Uses sklearn's "balanced" formula, n / (n_classes * count), computed
+    separately per dimension because the skew differs: 'Yes' is 78% of
+    mistake_identification but only 53% of actionability. A class absent from
+    the training split gets weight 1.0 rather than infinity.
+    """
+    y = gold_matrix(records)
+    weights = np.ones((len(DIMENSIONS), len(LABELS)), dtype=float)
+    for j in range(len(DIMENSIONS)):
+        col = y[:, j]
+        col = col[col != UNLABELED]
+        if len(col) == 0:
+            continue
+        counts = np.bincount(col, minlength=len(LABELS))
+        present = counts > 0
+        weights[j, present] = len(col) / (present.sum() * counts[present])
+    return weights
+
+
 def resolve_device(preferred: str = "auto") -> str:
     """Pick a compute device; TGT_DEVICE overrides the choice.
 
@@ -58,6 +79,17 @@ def resolve_device(preferred: str = "auto") -> str:
     if torch.backends.mps.is_available():
         return "mps"
     return "cpu"
+
+
+def _supported(**kwargs) -> dict:
+    """Drop TrainingArguments kwargs the installed transformers does not accept.
+
+    The save/checkpoint surface has churned across versions (5.x dropped
+    `save_safetensors`, for instance), and a hard failure here would be a
+    version pin in disguise.
+    """
+    allowed = inspect.signature(TrainingArguments.__init__).parameters
+    return {k: v for k, v in kwargs.items() if k in allowed}
 
 
 def _warmup_kwargs(config: RunConfig, n_train: int) -> dict[str, float | int]:
@@ -84,11 +116,15 @@ def train_grader(
 
     tokenizer = AutoTokenizer.from_pretrained(config.model_name)
 
+    weights = None
+    if config.class_weights:
+        weights = torch.tensor(balanced_class_weights(train_records), dtype=torch.float)
+
     if config.init_from:
         # Experiment (d): warm-start from the math-trained checkpoint.
         model = MultiHeadGrader.load(config.init_from)
     else:
-        model = MultiHeadGrader(model_name=config.model_name)
+        model = MultiHeadGrader(model_name=config.model_name, class_weights=weights)
 
     train_ds = GraderDataset(train_records, tokenizer, max_length=config.max_length)
     val_ds = GraderDataset(val_records, tokenizer, max_length=config.max_length)
@@ -107,7 +143,10 @@ def train_grader(
         num_train_epochs=config.num_epochs,
         weight_decay=config.weight_decay,
         eval_strategy="epoch",
-        save_strategy="no",
+        # Keep the best epoch on validation, not whatever the last epoch landed
+        # on. Validation climbs late and unevenly here -- it can sit near the
+        # majority floor for two epochs and then jump -- so the final weights
+        # are close to an arbitrary draw from the tail of the curve.
         logging_steps=25,
         report_to=[],
         # MultiHeadGrader is a plain nn.Module, so Trainer cannot infer the
@@ -117,6 +156,14 @@ def train_grader(
         # Trainer picks up CUDA/MPS on its own; this only forces CPU when
         # resolve_device() says so (e.g. TGT_DEVICE=cpu).
         use_cpu=resolve_device() == "cpu",
+        **_supported(
+            save_strategy="epoch",
+            save_total_limit=1,
+            load_best_model_at_end=True,
+            metric_for_best_model="eval_mean_macro_f1",
+            greater_is_better=True,
+            save_safetensors=False,  # plain nn.Module, not a PreTrainedModel
+        ),
         **_warmup_kwargs(config, n_train=len(train_ds)),
     )
 

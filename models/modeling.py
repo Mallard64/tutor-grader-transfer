@@ -51,7 +51,15 @@ class MultiHeadGrader(nn.Module):
         self.heads = nn.ModuleList([nn.Linear(hidden, n_classes) for _ in range(n_dimensions)])
         # UNLABELED entries contribute no gradient, which is what lets us train
         # on partially annotated data without imputing labels.
-        self.loss_fn = nn.CrossEntropyLoss(ignore_index=UNLABELED, weight=class_weights)
+        self.loss_fn = nn.CrossEntropyLoss(ignore_index=UNLABELED)
+        # Optional [n_dimensions, n_classes] weights. Per-dimension rather than
+        # one shared vector because the label skew differs a lot by dimension
+        # (mistake_identification is 78% 'Yes', actionability only 53%).
+        # Registered as a buffer so .to(device) moves it with the model.
+        if class_weights is not None:
+            self.register_buffer("class_weights", torch.as_tensor(class_weights, dtype=torch.float))
+        else:
+            self.class_weights = None
 
     def pool(self, hidden_states: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         """Mean-pool over non-padding tokens.
@@ -80,7 +88,27 @@ class MultiHeadGrader(nn.Module):
 
         result: dict[str, torch.Tensor] = {"logits": logits}
         if labels is not None:
-            result["loss"] = self.loss_fn(logits.reshape(-1, self.n_classes), labels.reshape(-1))
+            if self.class_weights is None:
+                # Mean over every labeled (example, dimension) entry.
+                result["loss"] = self.loss_fn(
+                    logits.reshape(-1, self.n_classes), labels.reshape(-1)
+                )
+            else:
+                # Same reduction, but each dimension gets its own weight vector.
+                # Identical to the branch above when the weights are uniform and
+                # every dimension is labeled.
+                per_dim = torch.stack(
+                    [
+                        nn.functional.cross_entropy(
+                            logits[:, j, :],
+                            labels[:, j],
+                            weight=self.class_weights[j],
+                            ignore_index=UNLABELED,
+                        )
+                        for j in range(self.n_dimensions)
+                    ]
+                )
+                result["loss"] = per_dim.mean()
         return result
 
     # --- checkpointing -------------------------------------------------
@@ -116,5 +144,9 @@ class MultiHeadGrader(nn.Module):
             n_classes=cfg["n_classes"],
         )
         state = torch.load(path / "pytorch_model.bin", map_location=map_location)
+        if "class_weights" in state:
+            # Rebuild the buffer so the shapes line up; the value is overwritten
+            # by load_state_dict immediately below.
+            model.register_buffer("class_weights", torch.zeros_like(state["class_weights"]))
         model.load_state_dict(state)
         return model

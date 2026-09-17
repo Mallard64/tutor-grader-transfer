@@ -50,6 +50,7 @@ class RunConfig:
     warmup_ratio: float = 0.1
     weight_decay: float = 0.01
     gradient_accumulation_steps: int = 1
+    class_weights: bool = False  # balanced per-dimension weights in the loss
     init_from: str = ""  # checkpoint dir to warm-start from (for d)
     output_dir: str = "models/runs"
     extra: dict[str, Any] = field(default_factory=dict)

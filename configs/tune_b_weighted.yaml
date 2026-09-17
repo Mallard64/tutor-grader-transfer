@@ -1,0 +1,19 @@
+# Arm B: arm A plus balanced per-dimension class weights in the loss.
+# The headline metric is macro-F1 on a 78/15/7 distribution, and the TF-IDF
+name: tune_b_weighted
+model_name: microsoft/deberta-v3-base
+train_domain: math
+eval_domain: math
+k_programming: 0
+seed: 0
+max_length: 512
+learning_rate: 2.0e-5
+batch_size: 16
+eval_batch_size: 32
+num_epochs: 4.0
+warmup_ratio: 0.1
+weight_decay: 0.01
+gradient_accumulation_steps: 1
+class_weights: true
+init_from: ""
+output_dir: models/runs
