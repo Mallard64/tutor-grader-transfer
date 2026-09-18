@@ -50,14 +50,13 @@ more than the human labels do (+0.15 vs −0.12). Validation picks the last epoc
 every seed, so 4 epochs is too few; class weighting is worth +0.028 val macro-F1,
 paired across 3 seeds (`results/tables/tuning.md`).
 
-**Transfer pilot** — TF-IDF, 20 LLM-labeled programming responses. Math in-domain
-0.517 (21% OOV) → programming zero-shot **0.229** (46% OOV), against constant-
-prediction floors of 0.214 (majority from math) and 0.257 (majority of programming).
-The lexical grader does not transfer: nearly half of programming tokens are missing
-from a vocabulary fitted on word problems, so most inputs arrive near-empty. That is
-a fact about bag-of-words features, not about whether pedagogy transfers — a subword model
-is the real test. At n=20 with CIs up to ±0.17, the k-curve rows in the results table are
-machinery validation, not evidence.
+**Transfer pilot** — TF-IDF, 20 LLM-labeled programming responses. Math in-domain 0.517
+(21% OOV) → programming zero-shot **0.229** (46% OOV), against constant-prediction floors
+of 0.214 (majority from math) and 0.257 (majority of programming). The lexical grader does
+not transfer: half the programming tokens are missing from a vocabulary fitted on word
+problems, so inputs arrive near-empty. That is a fact about bag-of-words features, not
+about whether pedagogy transfers — a subword model is the real test. At n=20 with CIs up
+to ±0.17, the k-curve rows in the table are machinery validation, not evidence.
 
 ## Limitations
 
