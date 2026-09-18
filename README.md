@@ -12,55 +12,57 @@ labeled programming examples recover it.
 
 - **Math**: the BEA 2025 / MRBench dev set from
   [UnifyingAITutorEvaluation](https://github.com/kaushal0494/UnifyingAITutorEvaluation) —
-  2,476 labeled responses, 300 dialogues, 9 tutors. The released test set is unlabeled, so
-  the dev set is split three ways, **by dialogue** (8-9 tutors answer each one, so
-  splitting by response would leak context); ids sharing a problem are grouped too.
-- **Programming**: not included. `scripts/build_candidates.py` turns TutorCode-format
-  buggy code into candidates from 3+ models; you label them by hand in `labeling/app.py`.
-  Nothing auto-labels with an LLM — that would make the comparison circular.
+  2,476 labeled responses, 300 dialogues, 9 tutors. Its released test set is unlabeled, so
+  the dev set is split three ways **by dialogue** (8-9 tutors answer each one, so splitting
+  by response would leak context); ids sharing a problem are grouped too.
+- **Programming**: Socratic Debugging Benchmark dialogues joined to annotations by
+  `scripts/build_pilot.py`. The pilot is 20 LLM-labeled turns — enough to exercise the
+  pipeline, not to conclude anything. `labeling/app.py` is the human path.
 
 ## Method
 
-DeBERTa-v3-base, four 3-class heads on a shared encoder (`models/`), HF Trainer, one
-YAML config per run in `configs/`. Experiments (`experiments/`):
+DeBERTa-v3-base, four 3-class heads on a shared encoder (`models/`), HF Trainer, one YAML
+config per run in `configs/`. Graders: **(a)** majority class, **(a2)** TF-IDF + logistic
+regression, **(b)** zero-shot LLM judge with the rubric. Transfer: **(c)** math-trained →
+programming zero-shot, **(d)** math-trained + k programming examples, **(e)** programming
+only. k ∈ {0, 8, 16, 32, 64, 128}, 5 seeds, test split fixed across seeds so the curve
+measures sample efficiency rather than split noise. c/d/e exist for both the DeBERTa
+(`transfer.py`, GPU) and TF-IDF (`linear_transfer.py`, CPU) graders.
 
-| | system |
-|---|---|
-| a | majority class, fit on train |
-| a2 | TF-IDF + logistic regression |
-| b | zero-shot LLM judge, given the rubric, both domains |
-| c | math-trained, evaluated on programming zero-shot |
-| d | math-trained + k programming examples |
-| e | programming-only, k examples, no math pretraining |
-
-k ∈ {0, 8, 16, 32, 64, 128}, 5 seeds each; the test split is fixed across seeds, so the
-curve measures sample efficiency, not split noise.
-
-Scoring (`eval/`): macro-F1 per dimension with 95% bootstrap CIs resampling whole
-dialogues, ECE, and shortcut probes for length, code blocks, and answer reveal. Probes
-report the *gap* vs the same correlation on human labels — long responses really do carry
-more guidance, so a raw correlation proves nothing.
+Scoring (`eval/`): macro-F1 per dimension with 95% bootstrap CIs resampling whole dialogues,
+ECE, and shortcut probes for length, code blocks, and answer reveal. Probes report the *gap*
+vs the same correlation on human labels — long responses really do carry more guidance, so a
+raw correlation proves nothing.
 
 ## Results
 
-| system | seeds | mean macro-F1 | MI | ML | PG | AC | ECE | shortcut gap |
-|---|---|---|---|---|---|---|---|---|
-| (a) majority class | 1 | 0.253 | 0.295 | 0.260 | 0.235 | 0.223 | - | - |
-| (a2) TF-IDF + logreg | 1 | 0.517 | 0.544 | 0.509 | 0.502 | 0.515 | 0.076 | −0.12 |
-| (c) DeBERTa-v3-base | 5 | 0.521 ± 0.015 | 0.603 | 0.480 | 0.481 | 0.519 | 0.046 | **+0.15** |
+Math test set (473 responses / 57 dialogues); DeBERTa trained on a Colab T4.
 
-Math test set: 473 responses / 57 held-out dialogues; DeBERTa trained on a Colab T4.
-Across 5 seeds DeBERTa spans 0.504–0.536 and ties the bag-of-words baseline (+0.004,
-0.25 sd) rather than beating it. The two are good at different things: DeBERTa is far
-better at mistake identification (0.603 vs 0.544), worse at guidance (0.481 vs 0.502),
-and better calibrated (0.046 vs 0.076). But it tracks response length **more** than the
-human labels do (+0.15) where the linear model tracks it less (−0.12): the accuracy is a
-tie, the shortcut reliance is not. (d)/(e) need labeled programming data; (b) costs credit.
+| system | seeds | mean macro-F1 | MI | ML | PG | AC | ECE |
+|---|---|---|---|---|---|---|---|
+| (a) majority class | 1 | 0.253 | 0.295 | 0.260 | 0.235 | 0.223 | - |
+| (a2) TF-IDF + logreg | 1 | 0.517 | 0.544 | 0.509 | 0.502 | 0.515 | 0.076 |
+| (c) DeBERTa-v3-base | 5 | 0.521 ± 0.015 | 0.603 | 0.480 | 0.481 | 0.519 | 0.046 |
+
+DeBERTa ties the bag of words on the mean (CIs overlap): it wins mistake
+identification, loses guidance, is better calibrated, and leans on response length
+more than the human labels do (+0.15 vs −0.12). Validation picks the last epoch on
+every seed, so 4 epochs is too few; class weighting is worth +0.028 val macro-F1,
+paired across 3 seeds (`results/tables/tuning.md`).
+
+**Transfer pilot** — TF-IDF, 20 LLM-labeled programming responses. Math in-domain
+0.517 (21% OOV) → programming zero-shot **0.229** (46% OOV), against constant-
+prediction floors of 0.214 (majority from math) and 0.257 (majority of programming).
+The lexical grader does not transfer: nearly half of programming tokens are missing
+from a vocabulary fitted on word problems, so most inputs arrive near-empty. That is
+a fact about bag-of-words features, not about whether pedagogy transfers — a subword model
+is the real test. At n=20 with CIs up to ±0.17, the k-curve rows in the results table are
+machinery validation, not evidence.
 
 ## Limitations
 
-- Domains differ in more than subject: math is K-8 word problems, programming is
-  college-level code, so a drop in (c) spans subject *and* level, inseparably.
+- Domains differ in more than subject: math is K-8 word problems, programming is college
+  code, so a drop in (c) spans subject *and* level, inseparably.
 - Without inter-annotator agreement the programming labels are single-annotator, so the
   ceiling on any grader is unknown.
 - Programming responses are model-generated; real tutors are not that distribution, and
