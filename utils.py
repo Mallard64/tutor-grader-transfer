@@ -52,7 +52,7 @@ class RunConfig:
     gradient_accumulation_steps: int = 1
     class_weights: bool = False  # balanced per-dimension weights in the loss
     init_from: str = ""  # checkpoint dir to warm-start from (for d)
-    output_dir: str = "models/runs"
+    output_dir: str = os.environ.get("TGT_MODEL_ROOT", "models/runs")
     extra: dict[str, Any] = field(default_factory=dict)
 
     @classmethod

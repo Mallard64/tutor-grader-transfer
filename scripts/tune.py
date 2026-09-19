@@ -22,6 +22,7 @@ just fit the noise.
 from __future__ import annotations
 
 import argparse
+import os
 import statistics as st
 import sys
 from pathlib import Path
@@ -34,7 +35,9 @@ from data.prepare import build_splits  # noqa: E402
 from data.schema import DIMENSIONS  # noqa: E402
 from utils import RunConfig, load_json, save_json  # noqa: E402
 
-OUT_DIR = REPO_ROOT / "results" / "tuning"
+# Honors TGT_RESULTS_ROOT so a sweep survives a recycled Colab VM.
+_ROOT = Path(os.environ.get("TGT_RESULTS_ROOT", REPO_ROOT / "results"))
+OUT_DIR = _ROOT / "tuning"
 TABLE_PATH = REPO_ROOT / "results" / "tables" / "tuning.md"
 
 

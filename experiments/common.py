@@ -6,6 +6,7 @@ scripts/make_plots.py never need to know which experiment produced a row.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -18,7 +19,11 @@ from eval.metrics import evaluate_predictions
 from eval.shortcuts import shortcut_report
 from utils import save_json
 
-RESULTS_DIR = Path("results/raw")
+# TGT_RESULTS_ROOT lets a run write somewhere that outlives the machine -- a
+# mounted Drive on Colab, where the VM is recycled every ~25 minutes and
+# anything under /content goes with it.
+RESULTS_ROOT = Path(os.environ.get("TGT_RESULTS_ROOT", "results"))
+RESULTS_DIR = RESULTS_ROOT / "raw"
 
 
 def build_result(
