@@ -28,30 +28,12 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from data.prepare import build_splits
+from data.prepare import build_splits, programming_pool_and_eval
 from data.schema import DIMENSIONS, LABELS, Record, gold_matrix
-from data.splits import sample_k_examples, split_records
+from data.splits import sample_k_examples
 from experiments.common import build_result, save_result, summarize
 from experiments.linear_baseline import fit_and_predict
 from utils import set_seed
-
-# Fraction of the programming set held out as the shared evaluation set for
-# (d) and (e). Fixed across k and seeds so the curve is comparable.
-EVAL_FRACTION = 0.5
-
-
-def programming_pool_and_eval(seed: int = 12345) -> tuple[list[Record], list[Record]]:
-    """Split programming into (pool to draw k from, fixed evaluation set).
-
-    Dialogue-grouped, and the split seed is deliberately independent of the
-    experiment seed so every k and every run scores on the same responses.
-    """
-    splits = build_splits("programming")
-    everything = splits["train"] + splits["val"] + splits["test"]
-    halves = split_records(
-        everything, fractions=(EVAL_FRACTION, 0.0, 1.0 - EVAL_FRACTION), seed=seed
-    )
-    return halves["test"], halves["train"]
 
 
 def run_c(seed: int = 0) -> list[dict]:

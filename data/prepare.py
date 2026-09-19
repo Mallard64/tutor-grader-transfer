@@ -42,3 +42,27 @@ def build_splits(
     splits = split_records(records, fractions=fractions, seed=seed)
     assert_no_group_leakage(splits)
     return splits
+
+
+# Fraction of the programming set held out as the shared evaluation set for the
+# k-curve. Fixed across k, seeds and model families so every point on the curve
+# -- and both the DeBERTa and TF-IDF versions of it -- is scored on the same
+# responses. Comparing arms measured on different subsets would be meaningless.
+EVAL_FRACTION = 0.5
+POOL_SPLIT_SEED = 12345
+
+
+def programming_pool_and_eval(
+    seed: int = POOL_SPLIT_SEED,
+) -> tuple[list[Record], list[Record]]:
+    """Split programming into (pool to draw k from, fixed evaluation set).
+
+    Dialogue-grouped, and the split seed is independent of the experiment seed
+    so the evaluation set does not move between runs.
+    """
+    splits = build_splits("programming")
+    everything = splits["train"] + splits["val"] + splits["test"]
+    halves = split_records(
+        everything, fractions=(EVAL_FRACTION, 0.0, 1.0 - EVAL_FRACTION), seed=seed
+    )
+    return halves["test"], halves["train"]

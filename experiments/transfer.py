@@ -19,10 +19,9 @@ from pathlib import Path
 
 import numpy as np
 
-from data.prepare import build_splits
-from data.schema import gold_matrix
+from data.prepare import build_splits, programming_pool_and_eval
+from data.schema import DIMENSIONS, LABELS, gold_matrix
 from data.splits import sample_k_examples
-from experiments.a_majority import fit_majority
 from experiments.common import build_result, save_result, summarize
 from models.train import load_grader, predict, train_grader
 from utils import RunConfig, set_seed
@@ -121,16 +120,16 @@ def run_c(seed: int, config: RunConfig | None = None) -> list[dict]:
 def run_d(k: int, seed: int, config: RunConfig | None = None) -> dict:
     """(d) Math-trained, then fine-tuned on k programming examples."""
     set_seed(seed)
-    prog = build_splits("programming")
+    pool, evalset = programming_pool_and_eval()
     ckpt = math_checkpoint(seed, config)
 
     if k == 0:
         # Identical to (c) by construction; re-scored here so the curve has a
         # k=0 point without retraining anything.
         model, tokenizer = load_grader(ckpt)
-        return _evaluate(model, tokenizer, prog["test"], "d", "math_plus_k", 0, seed)
+        return _evaluate(model, tokenizer, evalset, "d", "math_plus_k", 0, seed)
 
-    subset = sample_k_examples(prog["train"], k, seed=seed)
+    subset = sample_k_examples(pool, k, seed=seed)
     cfg = config or RunConfig(name="tmp")
     cfg.name = f"d_math_plus_k{k}_s{seed}"
     cfg.train_domain = "programming"
@@ -139,46 +138,43 @@ def run_d(k: int, seed: int, config: RunConfig | None = None) -> dict:
     cfg.init_from = str(ckpt)
 
     print(f"(d) fine-tuning math checkpoint on k={k} programming examples (seed {seed})")
-    model, _ = train_grader(cfg, subset, prog["val"])
+    model, _ = train_grader(cfg, subset, build_splits("programming")["val"])
     _, tokenizer = load_grader(cfg.run_dir)
     return _evaluate(
-        model, tokenizer, prog["test"], "d", "math_plus_k", k, seed, {"init_from": str(ckpt)}
+        model, tokenizer, evalset, "d", "math_plus_k", k, seed, {"init_from": str(ckpt)}
     )
 
 
 def run_e(k: int, seed: int, config: RunConfig | None = None) -> dict:
     """(e) Programming-only, k examples, no math pretraining.
 
-    At k=0 there are no programming labels to learn from, so the only system
-    available is a majority-class predictor -- and its majority class has to
-    come from somewhere other than programming labels, so we take it from the
-    math training split. This point is included so the curve starts somewhere
-    honest, not because it is an interesting model.
+    At k=0 there is nothing to fit -- no programming labels and, by definition
+    of this arm, no math either -- so the prediction is the uniform prior.
+    Seeding it with math's majority class would quietly put math information
+    into the arm whose whole point is not having any.
     """
     set_seed(seed)
-    prog = build_splits("programming")
+    pool, evalset = programming_pool_and_eval()
 
     if k == 0:
-        majority = fit_majority(build_splits("math")["train"])
-        test = prog["test"]
-        y_pred = np.tile(majority, (len(test), 1))
+        probs = np.full((len(evalset), len(DIMENSIONS), len(LABELS)), 1 / len(LABELS))
         result = build_result(
             experiment="e",
             system="prog_only",
             eval_domain="programming",
-            records=test,
-            y_true=gold_matrix(test),
-            y_pred=y_pred,
-            probs=None,
+            records=evalset,
+            y_true=gold_matrix(evalset),
+            y_pred=probs.argmax(axis=-1),
+            probs=probs,
             k=0,
             seed=seed,
-            extra={"note": "k=0 has no programming labels; majority-class predictor"},
+            extra={"note": "k=0 and no math data; uniform prior"},
         )
         save_result(result)
         print(summarize(result))
         return result
 
-    subset = sample_k_examples(prog["train"], k, seed=seed)
+    subset = sample_k_examples(pool, k, seed=seed)
     cfg = config or RunConfig(name="tmp")
     cfg.name = f"e_prog_only_k{k}_s{seed}"
     cfg.train_domain = "programming"
@@ -187,6 +183,6 @@ def run_e(k: int, seed: int, config: RunConfig | None = None) -> dict:
     cfg.init_from = ""  # fresh DeBERTa, no math training
 
     print(f"(e) training programming-only on k={k} examples (seed {seed})")
-    model, _ = train_grader(cfg, subset, prog["val"])
+    model, _ = train_grader(cfg, subset, build_splits("programming")["val"])
     _, tokenizer = load_grader(cfg.run_dir)
-    return _evaluate(model, tokenizer, prog["test"], "e", "prog_only", k, seed)
+    return _evaluate(model, tokenizer, evalset, "e", "prog_only", k, seed)
