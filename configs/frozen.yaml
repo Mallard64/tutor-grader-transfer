@@ -1,0 +1,22 @@
+# The recipe chosen on validation, for use in (c)/(d)/(e) alike.
+# Class weighting beat the unweighted control by +0.028 val macro-F1, paired
+# across all 3 seeds (results/tables/tuning.md). Epochs stay at 4: validation
+# selects the last epoch every time, so 8 is likely better but is UNTESTED --
+# do not raise it here without running the arm and recording the result.
+name: frozen
+model_name: microsoft/deberta-v3-base
+train_domain: math
+eval_domain: math
+k_programming: 0
+seed: 0
+max_length: 512
+learning_rate: 2.0e-5
+batch_size: 8
+eval_batch_size: 16
+num_epochs: 4.0
+warmup_ratio: 0.1
+weight_decay: 0.01
+gradient_accumulation_steps: 2
+class_weights: true
+init_from: ""
+output_dir: models/runs

@@ -88,12 +88,28 @@ def run_c(seed: int, config: RunConfig | None = None) -> list[dict]:
     # programming set is a skip rather than a failure: the math reference
     # number can be produced before any programming labeling has happened.
     try:
-        prog_test = build_splits("programming")["test"]
+        prog = build_splits("programming")
     except FileNotFoundError as exc:
         print(f"  skipping programming eval: {exc}")
         return results
 
-    results.append(_evaluate(model, tokenizer, prog_test, "c", "math_trained", 0, seed))
+    # Every programming record, not just the test split. Nothing in (c) trains
+    # on programming, so there is no leakage to guard against and holding data
+    # back would only widen the interval. Matches linear_transfer.run_c so the
+    # DeBERTa and TF-IDF transfer numbers are measured on the same responses.
+    all_prog = prog["train"] + prog["val"] + prog["test"]
+    results.append(
+        _evaluate(
+            model,
+            tokenizer,
+            all_prog,
+            "c",
+            "math_trained",
+            0,
+            seed,
+            {"eval_note": "all programming records; zero-shot, no leakage"},
+        )
+    )
     return results
 
 
