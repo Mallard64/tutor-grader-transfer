@@ -80,9 +80,14 @@ def run_c(seed: int, config: RunConfig | None = None) -> list[dict]:
     ckpt = math_checkpoint(seed, config)
     model, tokenizer = load_grader(ckpt)
 
+    # The recipe is part of the system identity. Without this, a class-weighted
+    # run overwrites the unweighted result for the same seed -- same filename,
+    # different model, no warning.
+    system = "math_trained_cw" if (config and config.class_weights) else "math_trained"
+
     results = []
     math_test = build_splits("math")["test"]
-    results.append(_evaluate(model, tokenizer, math_test, "c", "math_trained", 0, seed))
+    results.append(_evaluate(model, tokenizer, math_test, "c", system, 0, seed))
 
     # The in-domain half above stands on its own as a baseline, so a missing
     # programming set is a skip rather than a failure: the math reference
@@ -104,7 +109,7 @@ def run_c(seed: int, config: RunConfig | None = None) -> list[dict]:
             tokenizer,
             all_prog,
             "c",
-            "math_trained",
+            system,
             0,
             seed,
             {"eval_note": "all programming records; zero-shot, no leakage"},

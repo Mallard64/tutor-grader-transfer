@@ -42,21 +42,26 @@ Math test set (473 responses / 57 dialogues); DeBERTa trained on a Colab T4.
 |---|---|---|---|---|---|---|---|
 | (a) majority class | 1 | 0.253 | 0.295 | 0.260 | 0.235 | 0.223 | - |
 | (a2) TF-IDF + logreg | 1 | 0.517 | 0.544 | 0.509 | 0.502 | 0.515 | 0.076 |
-| (c) DeBERTa-v3-base | 5 | 0.521 ± 0.015 | 0.603 | 0.480 | 0.481 | 0.519 | 0.046 |
+| (c) DeBERTa, unweighted | 5 | 0.521 ± 0.015 | 0.603 | 0.480 | 0.481 | 0.519 | 0.046 |
+| (c) DeBERTa, class weights | 1 | **0.534** | 0.617 | 0.525 | 0.495 | 0.500 | 0.091 |
 
-DeBERTa ties the bag of words on the mean (CIs overlap): it wins mistake
-identification, loses guidance, is better calibrated, and leans on response length
-more than the human labels do (+0.15 vs −0.12). Validation picks the last epoch on
-every seed, so 4 epochs is too few; class weighting is worth +0.028 val macro-F1,
-paired across 3 seeds (`results/tables/tuning.md`).
+Class weighting was chosen on validation (+0.028, paired across 3 seeds,
+`results/tables/tuning.md`) and holds up on test. Validation selects the last epoch
+every time, so 4 epochs is too few; the 8-epoch arm is unrun.
 
-**Transfer pilot** — TF-IDF, 20 LLM-labeled programming responses. Math in-domain 0.517
-(21% OOV) → programming zero-shot **0.229** (46% OOV), against constant-prediction floors
-of 0.214 (majority from math) and 0.257 (majority of programming). The lexical grader does
-not transfer: half the programming tokens are missing from a vocabulary fitted on word
-problems, so inputs arrive near-empty. That is a fact about bag-of-words features, not
-about whether pedagogy transfers — a subword model is the real test. At n=20 with CIs up
-to ±0.17, the k-curve rows in the table are machinery validation, not evidence.
+**Transfer (pilot, 20 LLM-labeled programming responses):** both graders land on
+**0.229**, between constant-prediction floors of 0.214 (majority from math) and
+0.257 (majority of programming).
+
+Identical means, different per-dimension profiles (TF-IDF is better on mistake
+location, DeBERTa on mistake identification; see `results/tables/results.md`). TF-IDF's failure had an obvious
+cause — 46% of programming tokens fall outside a vocabulary fitted on word problems
+— but DeBERTa's subword tokenizer has no such wall and lands in the same place, so
+vocabulary was not the whole story. Neither beats predicting a constant. **n=20,
+CIs up to ±0.16, one seed, LLM labels: a pilot signal, not a result.** Two warnings:
+the LLM labels correlate with response length far more than the human math labels do
+(0.38–0.44 vs 0.12–0.26), and no programming response contains a code block, so that
+probe is degenerate here.
 
 ## Limitations
 
