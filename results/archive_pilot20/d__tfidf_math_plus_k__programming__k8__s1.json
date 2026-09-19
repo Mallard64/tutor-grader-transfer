@@ -1,0 +1,177 @@
+{
+  "experiment": "d",
+  "system": "tfidf_math_plus_k",
+  "eval_domain": "programming",
+  "k": 8,
+  "seed": 1,
+  "n_test": 9,
+  "n_dialogues": 9,
+  "metrics": {
+    "mistake_identification": {
+      "macro_f1": 0.20512820512820515,
+      "ci_low": 0.06666666666666667,
+      "ci_high": 0.2916666666666667,
+      "n": 9
+    },
+    "mistake_location": {
+      "macro_f1": 0.16666666666666666,
+      "ci_low": 0.06666666666666667,
+      "ci_high": 0.26666666666666666,
+      "n": 9
+    },
+    "providing_guidance": {
+      "macro_f1": 0.2777777777777778,
+      "ci_low": 0.16666666666666666,
+      "ci_high": 0.3333333333333333,
+      "n": 9
+    },
+    "actionability": {
+      "macro_f1": 0.12121212121212122,
+      "ci_low": 0.0,
+      "ci_high": 0.2380952380952381,
+      "n": 9
+    },
+    "mean": {
+      "macro_f1": 0.1926961926961927
+    }
+  },
+  "shortcuts": {
+    "mistake_identification": {
+      "length": {
+        "corr_pred": NaN,
+        "stump_agreement": NaN,
+        "feature_mean": 17.11111111111111,
+        "corr_gold": 0.21561332082277004,
+        "gap": NaN
+      },
+      "code_block": {
+        "corr_pred": NaN,
+        "stump_agreement": NaN,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      },
+      "reveals_answer": {
+        "corr_pred": NaN,
+        "stump_agreement": NaN,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      }
+    },
+    "mistake_location": {
+      "length": {
+        "corr_pred": NaN,
+        "stump_agreement": NaN,
+        "feature_mean": 17.11111111111111,
+        "corr_gold": 0.11229860459519272,
+        "gap": NaN
+      },
+      "code_block": {
+        "corr_pred": NaN,
+        "stump_agreement": NaN,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      },
+      "reveals_answer": {
+        "corr_pred": NaN,
+        "stump_agreement": NaN,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      }
+    },
+    "providing_guidance": {
+      "length": {
+        "corr_pred": -0.41425857805424554,
+        "stump_agreement": 0.8888888888888888,
+        "feature_mean": 17.11111111111111,
+        "corr_gold": 0.23014365447458085,
+        "gap": -0.6444022325288263
+      },
+      "code_block": {
+        "corr_pred": NaN,
+        "stump_agreement": 0.6666666666666666,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      },
+      "reveals_answer": {
+        "corr_pred": NaN,
+        "stump_agreement": 0.6666666666666666,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      }
+    },
+    "actionability": {
+      "length": {
+        "corr_pred": -0.13057580309967504,
+        "stump_agreement": 0.7777777777777778,
+        "feature_mean": 17.11111111111111,
+        "corr_gold": NaN,
+        "gap": NaN
+      },
+      "code_block": {
+        "corr_pred": NaN,
+        "stump_agreement": 0.6666666666666666,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      },
+      "reveals_answer": {
+        "corr_pred": NaN,
+        "stump_agreement": 0.6666666666666666,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      }
+    }
+  },
+  "calibration": {
+    "mistake_identification": {
+      "ece": 0.20536324779604404,
+      "mce": 0.6091085058502851,
+      "avg_confidence": 0.5038398787423753,
+      "accuracy": 0.4444444444444444,
+      "n": 9
+    },
+    "mistake_location": {
+      "ece": 0.23039153837598192,
+      "mce": 0.6369401142253042,
+      "avg_confidence": 0.5637248717093153,
+      "accuracy": 0.3333333333333333,
+      "n": 9
+    },
+    "providing_guidance": {
+      "ece": 0.26358115999628934,
+      "mce": 0.380227951480265,
+      "avg_confidence": 0.39666121390710596,
+      "accuracy": 0.5555555555555556,
+      "n": 9
+    },
+    "actionability": {
+      "ece": 0.2888671668284606,
+      "mce": 0.5768903907170877,
+      "avg_confidence": 0.3828915244468855,
+      "accuracy": 0.2222222222222222,
+      "n": 9
+    },
+    "mean": {
+      "ece": 0.24705077824919397
+    }
+  },
+  "extra": {
+    "C_per_dimension": {
+      "mistake_identification": 1.0,
+      "mistake_location": 1.0,
+      "providing_guidance": 1.0,
+      "actionability": 1.0
+    },
+    "n_features": 17026,
+    "oov_rate": 0.39250540475618545,
+    "n_train": 1677,
+    "n_eval": 9
+  }
+}

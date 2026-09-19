@@ -1,0 +1,176 @@
+{
+  "experiment": "c",
+  "system": "tfidf_math_trained",
+  "eval_domain": "programming",
+  "k": 0,
+  "seed": 0,
+  "n_test": 20,
+  "n_dialogues": 20,
+  "metrics": {
+    "mistake_identification": {
+      "macro_f1": 0.19999999999999998,
+      "ci_low": 0.06666666666666667,
+      "ci_high": 0.338937968349733,
+      "n": 20
+    },
+    "mistake_location": {
+      "macro_f1": 0.38888888888888884,
+      "ci_low": 0.22872103386809275,
+      "ci_high": 0.522736013986014,
+      "n": 20
+    },
+    "providing_guidance": {
+      "macro_f1": 0.25396825396825395,
+      "ci_low": 0.08321078431372571,
+      "ci_high": 0.4195455512984248,
+      "n": 20
+    },
+    "actionability": {
+      "macro_f1": 0.07254901960784314,
+      "ci_low": 0.0,
+      "ci_high": 0.17857142857142858,
+      "n": 20
+    },
+    "mean": {
+      "macro_f1": 0.22885154061624646
+    }
+  },
+  "shortcuts": {
+    "mistake_identification": {
+      "length": {
+        "corr_pred": -0.23026441481863597,
+        "stump_agreement": 0.8,
+        "feature_mean": 17.35,
+        "corr_gold": 0.37549067906285444,
+        "gap": -0.6057550938814904
+      },
+      "code_block": {
+        "corr_pred": NaN,
+        "stump_agreement": 0.7,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      },
+      "reveals_answer": {
+        "corr_pred": -0.3948992518393949,
+        "stump_agreement": 0.75,
+        "feature_mean": 0.05,
+        "corr_gold": 0.1545287749909218,
+        "gap": -0.5494280268303167
+      }
+    },
+    "mistake_location": {
+      "length": {
+        "corr_pred": -0.13116629547386272,
+        "stump_agreement": 0.85,
+        "feature_mean": 17.35,
+        "corr_gold": 0.43495083863160217,
+        "gap": -0.5661171341054649
+      },
+      "code_block": {
+        "corr_pred": NaN,
+        "stump_agreement": 0.55,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      },
+      "reveals_answer": {
+        "corr_pred": -0.20751433915982237,
+        "stump_agreement": 0.55,
+        "feature_mean": 0.05,
+        "corr_gold": 0.28371703515501445,
+        "gap": -0.4912313743148368
+      }
+    },
+    "providing_guidance": {
+      "length": {
+        "corr_pred": -0.2865834495408178,
+        "stump_agreement": 0.6,
+        "feature_mean": 17.35,
+        "corr_gold": 0.4046075564637359,
+        "gap": -0.6911910060045537
+      },
+      "code_block": {
+        "corr_pred": NaN,
+        "stump_agreement": 0.55,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      },
+      "reveals_answer": {
+        "corr_pred": -0.20121090914638343,
+        "stump_agreement": 0.55,
+        "feature_mean": 0.05,
+        "corr_gold": 0.14886458551295736,
+        "gap": -0.3500754946593408
+      }
+    },
+    "actionability": {
+      "length": {
+        "corr_pred": 0.1397236205765432,
+        "stump_agreement": 1.0,
+        "feature_mean": 17.35,
+        "corr_gold": 0.37887886224687156,
+        "gap": -0.23915524167032837
+      },
+      "code_block": {
+        "corr_pred": NaN,
+        "stump_agreement": 0.95,
+        "feature_mean": 0.0,
+        "corr_gold": NaN,
+        "gap": NaN
+      },
+      "reveals_answer": {
+        "corr_pred": -0.05263157894736842,
+        "stump_agreement": 0.95,
+        "feature_mean": 0.05,
+        "corr_gold": 0.11417392516771377,
+        "gap": -0.1668055041150822
+      }
+    }
+  },
+  "calibration": {
+    "mistake_identification": {
+      "ece": 0.2447077313374036,
+      "mce": 0.6602349551652191,
+      "avg_confidence": 0.49470773133740364,
+      "accuracy": 0.25,
+      "n": 20
+    },
+    "mistake_location": {
+      "ece": 0.1891703383117055,
+      "mce": 0.3984228579357918,
+      "avg_confidence": 0.522068509445262,
+      "accuracy": 0.55,
+      "n": 20
+    },
+    "providing_guidance": {
+      "ece": 0.21125278022273142,
+      "mce": 0.43779257788385906,
+      "avg_confidence": 0.3952020242959699,
+      "accuracy": 0.3,
+      "n": 20
+    },
+    "actionability": {
+      "ece": 0.34730701894100674,
+      "mce": 0.5211595983025865,
+      "avg_confidence": 0.4473070189410068,
+      "accuracy": 0.1,
+      "n": 20
+    },
+    "mean": {
+      "ece": 0.2481094672032118
+    }
+  },
+  "extra": {
+    "C_per_dimension": {
+      "mistake_identification": 4.0,
+      "mistake_location": 4.0,
+      "providing_guidance": 1.0,
+      "actionability": 1.0
+    },
+    "n_features": 16848,
+    "oov_rate": 0.4566852966466036,
+    "eval_note": "all programming records; zero-shot, no leakage"
+  }
+}

@@ -36,32 +36,36 @@ raw correlation proves nothing.
 
 ## Results
 
-Math test set (473 responses / 57 dialogues); DeBERTa trained on a Colab T4.
+**In-domain, math test set** (473 responses / 57 dialogues):
 
-| system | seeds | mean macro-F1 | MI | ML | PG | AC | ECE |
+| system | seeds | macro-F1 | MI | ML | PG | AC | ECE |
 |---|---|---|---|---|---|---|---|
 | (a) majority class | 1 | 0.253 | 0.295 | 0.260 | 0.235 | 0.223 | - |
 | (a2) TF-IDF + logreg | 1 | 0.517 | 0.544 | 0.509 | 0.502 | 0.515 | 0.076 |
 | (c) DeBERTa, unweighted | 5 | 0.521 ± 0.015 | 0.603 | 0.480 | 0.481 | 0.519 | 0.046 |
-| (c) DeBERTa, class weights | 1 | **0.534** | 0.617 | 0.525 | 0.495 | 0.500 | 0.091 |
+| (c) DeBERTa, class weights | 1 | 0.534 | 0.617 | 0.525 | 0.495 | 0.500 | 0.091 |
 
-Class weighting was chosen on validation (+0.028, paired across 3 seeds,
-`results/tables/tuning.md`) and holds up on test. Validation selects the last epoch
-every time, so 4 epochs is too few; the 8-epoch arm is unrun.
+**Transfer** — 400 LLM-labeled programming responses over 56 dialogues, TF-IDF,
+5 seeds, evaluated on a fixed 162-response half (22 dialogues):
 
-**Transfer (pilot, 20 LLM-labeled programming responses):** both graders land on
-**0.229**, between constant-prediction floors of 0.214 (majority from math) and
-0.257 (majority of programming).
+| k | 0 | 8 | 16 | 32 | 64 | 128 | 238 |
+|---|---|---|---|---|---|---|---|
+| (d) math + k | 0.185 | 0.295 | 0.301 | 0.302 | 0.301 | 0.306 | — |
+| (e) programming only | 0.147 | 0.258 | 0.275 | 0.308 | 0.360 | **0.459** | 0.488 |
 
-Identical means, different per-dimension profiles (TF-IDF is better on mistake
-location, DeBERTa on mistake identification; see `results/tables/results.md`). TF-IDF's failure had an obvious
-cause — 46% of programming tokens fall outside a vocabulary fitted on word problems
-— but DeBERTa's subword tokenizer has no such wall and lands in the same place, so
-vocabulary was not the whole story. Neither beats predicting a constant. **n=20,
-CIs up to ±0.16, one seed, LLM labels: a pilot signal, not a result.** Two warnings:
-the LLM labels correlate with response length far more than the human math labels do
-(0.38–0.44 vs 0.12–0.26), and no programming response contains a code block, so that
-probe is degenerate here.
+Seed std ≤ 0.06 throughout; full table in `results/tables/results.md`.
+
+**Math pretraining is worth about 32 examples, then becomes a liability.** The
+math-trained grader scores 0.210 zero-shot — *below* the programming majority floor
+of 0.272. Math helps only while programming data is scarce: (d) leads at k ≤ 16, the
+arms cross near k = 32, and by k = 128 programming-only leads by +0.153 and is still
+climbing while (d) has sat at ~0.30 since k = 8. Programming-only reaches 0.488 on
+all 238; the math rows pin the pooled model to math vocabulary and math priors.
+
+So "how many programming examples close the gap" has an awkward answer: the gap
+does not close by adding math, it closes by dropping it. ~30 examples is where
+math stops paying for itself. Labels here are LLM-generated and the grader is
+lexical, so treat this as the shape of the curve, not its height.
 
 ## Limitations
 
@@ -71,7 +75,7 @@ probe is degenerate here.
   ceiling on any grader is unknown.
 - Programming responses are model-generated; real tutors are not that distribution, and
   "reveals the answer" is a keyword heuristic that over-fires: a probe, not a label.
-- Split is 70/15/15 by dialogue group; sizes vary, so counts land near 67/13/19. (a) and
+- Splits are 70/15/15 by dialogue group; sizes vary, so realized counts drift. (a) and
   (a2) are single-seed and deterministic; only (c) is swept.
 - DeBERTa needs real memory: batch 16 x 512 swapped on a 16GB laptop, ~30x slower.
 
