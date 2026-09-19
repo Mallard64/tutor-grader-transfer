@@ -52,7 +52,7 @@ class RunConfig:
     gradient_accumulation_steps: int = 1
     class_weights: bool = False  # balanced per-dimension weights in the loss
     init_from: str = ""  # checkpoint dir to warm-start from (for d)
-    output_dir: str = os.environ.get("TGT_MODEL_ROOT", "models/runs")
+    output_dir: str = "models/runs"
     extra: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -70,7 +70,15 @@ class RunConfig:
 
     @property
     def run_dir(self) -> Path:
-        return Path(self.output_dir) / self.name
+        """Where this run's checkpoint lives.
+
+        TGT_MODEL_ROOT wins over output_dir. Every shipped config sets
+        output_dir explicitly, so without this the env var would be silently
+        ignored whenever a --config was passed -- which is exactly when it
+        matters, since that is how runs are launched on Colab.
+        """
+        root = os.environ.get("TGT_MODEL_ROOT") or self.output_dir
+        return Path(root) / self.name
 
 
 def save_json(obj: Any, path: str | Path) -> Path:

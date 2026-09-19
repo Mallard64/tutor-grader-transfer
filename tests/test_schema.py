@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from data.schema import (
@@ -84,3 +86,23 @@ def test_jsonl_round_trip(tmp_path, many_records):
     assert loaded[0].labels == many_records[0].labels
     assert loaded[0].response_id == many_records[0].response_id
     assert loaded[0].domain == "programming"
+
+
+def test_model_root_env_var_overrides_the_config(monkeypatch, tmp_path):
+    """TGT_MODEL_ROOT must beat output_dir, not the other way round.
+
+    Every shipped config sets output_dir, so if the YAML won, the env var would
+    be ignored precisely when a --config is passed. That is how Colab runs are
+    launched, and it silently wrote checkpoints to the ephemeral VM disk
+    instead of the mounted Drive.
+    """
+    from utils import RunConfig
+
+    cfg = RunConfig(name="run1", output_dir="models/runs")
+    assert cfg.run_dir == Path("models/runs/run1")
+
+    monkeypatch.setenv("TGT_MODEL_ROOT", str(tmp_path / "drive"))
+    assert cfg.run_dir == tmp_path / "drive" / "run1"
+
+    monkeypatch.delenv("TGT_MODEL_ROOT")
+    assert cfg.run_dir == Path("models/runs/run1")
