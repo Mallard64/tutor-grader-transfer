@@ -200,3 +200,30 @@ def test_weighted_loss_differs_from_unweighted():
         b = weighted(**batch)["loss"]
     assert torch.isfinite(a) and torch.isfinite(b)
     assert not torch.allclose(a, b), "class weights had no effect on the loss"
+
+
+def test_weighted_checkpoint_survives_a_save_load_round_trip(tmp_path):
+    """Regression: reloading a class-weighted checkpoint used to raise.
+
+    __init__ set self.class_weights = None as a plain attribute on the
+    unweighted path, so load()'s register_buffer hit a name that already
+    existed and raised KeyError. Training would finish and save, then blow up
+    the moment anything read the checkpoint back -- which is where it actually
+    bit, after a full run on a GPU.
+    """
+    import torch
+
+    from models.modeling import MultiHeadGrader
+
+    weights = torch.rand(len(DIMENSIONS), len(LABELS)) + 0.5
+    model = MultiHeadGrader(model_name=TINY_MODEL, class_weights=weights)
+    model.save(tmp_path / "ckpt")
+
+    reloaded = MultiHeadGrader.load(tmp_path / "ckpt")
+    assert reloaded.class_weights is not None
+    assert torch.allclose(reloaded.class_weights, weights)
+
+    # And the unweighted path must still round-trip.
+    plain = MultiHeadGrader(model_name=TINY_MODEL)
+    plain.save(tmp_path / "plain")
+    assert MultiHeadGrader.load(tmp_path / "plain").class_weights is None

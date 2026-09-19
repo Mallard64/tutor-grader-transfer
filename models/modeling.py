@@ -56,10 +56,13 @@ class MultiHeadGrader(nn.Module):
         # one shared vector because the label skew differs a lot by dimension
         # (mistake_identification is 78% 'Yes', actionability only 53%).
         # Registered as a buffer so .to(device) moves it with the model.
-        if class_weights is not None:
-            self.register_buffer("class_weights", torch.as_tensor(class_weights, dtype=torch.float))
-        else:
-            self.class_weights = None
+        # Registered unconditionally, including as None. Assigning a plain
+        # attribute in the None case would make the name un-registerable later,
+        # which is exactly what broke reloading a weighted checkpoint.
+        self.register_buffer(
+            "class_weights",
+            None if class_weights is None else torch.as_tensor(class_weights, dtype=torch.float),
+        )
 
     def pool(self, hidden_states: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         """Mean-pool over non-padding tokens.
@@ -145,8 +148,8 @@ class MultiHeadGrader(nn.Module):
         )
         state = torch.load(path / "pytorch_model.bin", map_location=map_location)
         if "class_weights" in state:
-            # Rebuild the buffer so the shapes line up; the value is overwritten
-            # by load_state_dict immediately below.
-            model.register_buffer("class_weights", torch.zeros_like(state["class_weights"]))
+            # The buffer already exists (as None), so assign rather than
+            # re-register; load_state_dict overwrites the value below.
+            model.class_weights = torch.zeros_like(state["class_weights"])
         model.load_state_dict(state)
         return model
